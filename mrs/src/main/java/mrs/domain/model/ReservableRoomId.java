@@ -3,6 +3,7 @@ package mrs.domain.model;
 import java.io.Serializable;
 import java.time.LocalDate;
 
+import javax.persistence.Column;
 import javax.persistence.Embeddable;
 
 import lombok.Data;
@@ -24,6 +25,7 @@ public class ReservableRoomId implements Serializable {
     /**
      * 予約日
      */
+    @Column(name = "reserved_date", columnDefinition = "DATE")
     private LocalDate reservedDate;
     
 }
