@@ -6,10 +6,14 @@ import java.time.LocalDate;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Embeddable
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class ReservableRoomId implements Serializable {
 
     /**
@@ -27,5 +31,5 @@ public class ReservableRoomId implements Serializable {
      */
     @Column(name = "reserved_date", columnDefinition = "DATE")
     private LocalDate reservedDate;
-    
+
 }
