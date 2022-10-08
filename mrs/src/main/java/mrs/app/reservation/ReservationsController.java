@@ -10,12 +10,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import mrs.app.reservation.form.ReservationForm;
+import mrs.domain.exception.AlreadyReservedException;
+import mrs.domain.exception.UnavailableReservationException;
+import mrs.domain.model.ReservableRoom;
 import mrs.domain.model.ReservableRoomId;
 import mrs.domain.model.Reservation;
 import mrs.domain.model.RoleName;
@@ -62,6 +69,69 @@ public class ReservationsController {
         model.addAttribute("user", dummyUser());
 
         return "reservation/reserveForm";
+    }
+
+    /**
+     * 予約
+     * @param formData フォームオブジェクト
+     * @param bindingResult バインディングリザルト
+     * @param date 日付
+     * @param roomId 部屋ID
+     * @param model モデル
+     * @return 画面
+     */
+    @PostMapping
+    String reserve(@Validated ReservationForm formData,
+            BindingResult bindingResult,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @PathVariable("date") LocalDate date,
+            @PathVariable("roomId") Integer roomId, Model model) {
+
+        if (bindingResult.hasErrors()) {
+            return reserveForm(date, roomId, model);
+        }
+
+        ReservableRoom reservableRoom = new ReservableRoom();
+
+        ReservableRoomId reservableRoomId = new ReservableRoomId(roomId, date);
+        reservableRoom.setReservableRoomId(reservableRoomId);
+
+        Reservation reservation = new Reservation();
+        reservation.setStartTime(formData.getStartTime());
+        reservation.setEndTime(formData.getEndTime());
+        reservation.setReservableRoom(reservableRoom);
+        reservation.setUser(dummyUser());
+
+        try {
+            reservationService.reserve(reservation);
+        } catch (UnavailableReservationException | AlreadyReservedException e) {
+            model.addAttribute("error", e.getMessage());
+            return reserveForm(date, roomId, model);
+        }
+        return "redirect:/reservations/{date}/{roomId}";
+    }
+
+    /**
+     * 取消
+     * @param reservationId 予約ID
+     * @param roomId 部屋ID
+     * @param date 日付
+     * @param model モデル
+     * @return 画面
+     */
+    @PostMapping(params = "cancel")
+    String cancel(@RequestParam("reservationId") Integer reservationId,
+            @PathVariable("roomId") Integer roomId,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @PathVariable("date") LocalDate date,
+            Model model) {
+
+        User user = dummyUser();
+        try {
+            reservationService.cancel(reservationId, user);
+        } catch (IllegalStateException e) {
+            model.addAttribute("error", e.getMessage());
+            return reserveForm(date, roomId, model);
+        }
+        return "redirect:/reservations/{date}/{roomId}";
     }
 
     /**
